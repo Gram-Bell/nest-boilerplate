@@ -13,9 +13,6 @@ module.exports = {
     DtoName(name) {
       return `${this.ClassName(name)}Dto`;
     },
-    TranslationDtoName(name) {
-      return `${this.ClassName(name)}TranslationDto`;
-    },
     UpdateDtoName(name) {
       return `Update${this.DtoName(name)}`;
     },
@@ -28,21 +25,6 @@ module.exports = {
     EntityName(name) {
       return `${this.ClassName(name)}Entity`;
     },
-    TranslationEntityName(name) {
-      return `${this.ClassName(name)}TranslationEntity`;
-    },
-    CreateCommandName(name) {
-      return `Create${this.ClassName(name)}Command`;
-    },
-    CreateHandlerName(name) {
-      return `Create${this.ClassName(name)}Handler`;
-    },
-    GetHandlerName(name) {
-      return `Get${this.ClassName(name)}Handler`;
-    },
-    GetQueryName(name) {
-      return `Get${this.ClassName(name)}Query`;
-    },
     PageOptionsDtoName(name) {
       return this.ClassName(name) + 'PageOptionsDto';
     },
@@ -52,20 +34,8 @@ module.exports = {
     entityFileName(name) {
       return `${this.fileName(name)}.entity`;
     },
-    translationEntityFileName(name) {
-      return `${this.fileName(name)}-translation.entity`;
-    },
-    translationDtoFileName(name) {
-      return `${this.fileName(name)}-translation.dto`;
-    },
     repositoryFileName(name) {
       return `${this.fileName(name)}.repository`;
-    },
-    translationRepositoryFileName(name) {
-      return `${this.fileName(name)}-translation.repository`;
-    },
-    createCommandFileName(name) {
-      return `create-${this.fileName(name)}.command`;
     },
     getQueryFileName(name) {
       return `get-${this.fileName(name)}.query`;
@@ -103,9 +73,6 @@ module.exports = {
     RepositoryName(name) {
       return `${this.ClassName(name)}Repository`;
     },
-    TranslationRepositoryName(name) {
-      return `${this.ClassName(name)}TranslationRepository`;
-    },
     moduleName(name) {
       return this.changeCase.camel(name);
     },
@@ -113,4 +80,4 @@ module.exports = {
       return this.inflection.dasherize(name).toLowerCase();
     },
   },
-}
+};

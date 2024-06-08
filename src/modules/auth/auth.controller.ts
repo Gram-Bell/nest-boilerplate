@@ -45,7 +45,7 @@ export class AuthController {
       role: userEntity.role,
     });
 
-    return new LoginPayloadDto(userEntity.toDto(), token);
+    return new LoginPayloadDto(userEntity.toDto({ isActive: false }), token);
   }
 
   @Post('register')

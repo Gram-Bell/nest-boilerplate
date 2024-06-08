@@ -5,7 +5,6 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
-import { Transport } from '@nestjs/microservices';
 import {
   ExpressAdapter,
   type NestExpressApplication,
@@ -18,10 +17,8 @@ import { initializeTransactionalContext } from 'typeorm-transactional';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/bad-request.filter';
 import { QueryFailedFilter } from './filters/query-failed.filter';
-import { TranslationInterceptor } from './interceptors/translation-interceptor.service';
 import { setupSwagger } from './setup-swagger';
 import { ApiConfigService } from './shared/services/api-config.service';
-import { TranslationService } from './shared/services/translation.service';
 import { SharedModule } from './shared/shared.module';
 
 export async function bootstrap(): Promise<NestExpressApplication> {
@@ -45,12 +42,7 @@ export async function bootstrap(): Promise<NestExpressApplication> {
     new QueryFailedFilter(reflector),
   );
 
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(reflector),
-    new TranslationInterceptor(
-      app.select(SharedModule).get(TranslationService),
-    ),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -63,20 +55,6 @@ export async function bootstrap(): Promise<NestExpressApplication> {
   );
 
   const configService = app.select(SharedModule).get(ApiConfigService);
-
-  // only start nats if it is enabled
-  if (configService.natsEnabled) {
-    const natsConfig = configService.natsConfig;
-    app.connectMicroservice({
-      transport: Transport.NATS,
-      options: {
-        url: `nats://${natsConfig.host}:${natsConfig.port}`,
-        queue: 'main_service',
-      },
-    });
-
-    await app.startAllMicroservices();
-  }
 
   if (configService.documentationEnabled) {
     setupSwagger(app);
