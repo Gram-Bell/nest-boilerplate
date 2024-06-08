@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-types,@typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/ban-types */
 import { applyDecorators, UseInterceptors, type Type } from '@nestjs/common';
 import {
 	PARAMTYPES_METADATA,
