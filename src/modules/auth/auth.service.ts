@@ -1,51 +1,46 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-import { validateHash } from '../../common/utils';
-import { type RoleType, TokenType } from '../../constants';
-import { UserNotFoundException } from '../../exceptions';
+import { RoleType } from '../../constants';
+import { IUser } from '../../interfaces/IUser';
 import { ApiConfigService } from '../../shared/services/api-config.service';
-import { type UserEntity } from '../user/user.entity';
-import { UserService } from '../user/user.service';
-import { TokenPayloadDto } from './dto/token-payload.dto';
-import { type UserLoginDto } from './dto/user-login.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private jwtService: JwtService,
-    private configService: ApiConfigService,
-    private userService: UserService,
-  ) {}
+	constructor(
+		private jwtService: JwtService,
+		private configService: ApiConfigService,
+	) {}
 
-  async createAccessToken(data: {
-    role: RoleType;
-    userId: Uuid;
-  }): Promise<TokenPayloadDto> {
-    return new TokenPayloadDto({
-      expiresIn: this.configService.authConfig.jwtExpirationTime,
-      accessToken: await this.jwtService.signAsync({
-        userId: data.userId,
-        type: TokenType.ACCESS_TOKEN,
-        role: data.role,
-      }),
-    });
-  }
+	validate(token): IUser {
+		try {
+			const decoded = this.jwtService.verify(token, {
+				algorithms: ['RS256'],
+				publicKey: this.configService.authConfig.publicKey,
+			});
 
-  async validateUser(userLoginDto: UserLoginDto): Promise<UserEntity> {
-    const user = await this.userService.findOne({
-      email: userLoginDto.email,
-    });
+			return {
+				clientId: decoded.applicationId,
+				email: decoded.email,
+				id: decoded.jid,
+				role: decoded.roles[0],
+			};
+		} catch (error) {
+			throw new UnauthorizedException('Failed to verify token');
+		}
+	}
 
-    const isPasswordValid = await validateHash(
-      userLoginDto.password,
-      user?.password,
-    );
+	validateInternal(secret: string, clientId: string): IUser {
+		// TODO: POPULATE EMAIL and ID LATER
+		if (this.configService.authConfig.internalAuthSecret === secret) {
+			return {
+				clientId: clientId,
+				email: '',
+				id: '',
+				role: RoleType.ADMIN,
+			};
+		}
 
-    if (!isPasswordValid) {
-      throw new UserNotFoundException();
-    }
-
-    return user!;
-  }
+		throw new UnauthorizedException('Failed to verify secret');
+	}
 }

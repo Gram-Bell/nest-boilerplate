@@ -12,8 +12,6 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthCheckerModule } from './modules/health-checker/health-checker.module';
-import { PostModule } from './modules/post/post.module';
-import { UserModule } from './modules/user/user.module';
 import { ApiConfigService } from './shared/services/api-config.service';
 import { SharedModule } from './shared/shared.module';
 
@@ -32,8 +30,6 @@ import { SharedModule } from './shared/shared.module';
 			path: '/metrics',
 		}),
 		AuthModule,
-		UserModule,
-		PostModule,
 		ClsModule.forRoot({
 			global: true,
 			middleware: {
