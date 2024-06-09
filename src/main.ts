@@ -1,17 +1,17 @@
 import {
-  ClassSerializerInterceptor,
-  HttpStatus,
-  UnprocessableEntityException,
-  ValidationPipe,
+	ClassSerializerInterceptor,
+	HttpStatus,
+	UnprocessableEntityException,
+	ValidationPipe,
 } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
 import {
-  ExpressAdapter,
-  type NestExpressApplication,
+	ExpressAdapter,
+	type NestExpressApplication,
 } from '@nestjs/platform-express';
 import compression from 'compression';
 import helmet from 'helmet';
-import morgan from 'morgan';
+import { Logger } from 'nestjs-pino';
 import { initializeTransactionalContext } from 'typeorm-transactional';
 
 import { AppModule } from './app.module';
@@ -22,55 +22,59 @@ import { ApiConfigService } from './shared/services/api-config.service';
 import { SharedModule } from './shared/shared.module';
 
 export async function bootstrap(): Promise<NestExpressApplication> {
-  initializeTransactionalContext();
-  const app = await NestFactory.create<NestExpressApplication>(
-    AppModule,
-    new ExpressAdapter(),
-    { cors: true },
-  );
-  app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
-  app.use(helmet());
-  // app.setGlobalPrefix('/api'); use api as global prefix if you don't have subdomain
-  app.use(compression());
-  app.use(morgan('combined'));
-  app.enableVersioning();
+	initializeTransactionalContext();
+	const app = await NestFactory.create<NestExpressApplication>(
+		AppModule,
+		new ExpressAdapter(),
+		{ cors: true, bufferLogs: true },
+	);
 
-  const reflector = app.get(Reflector);
+	if (process.env.NODE_ENV !== 'development') {
+		app.useLogger(app.get(Logger));
+	}
 
-  app.useGlobalFilters(
-    new HttpExceptionFilter(reflector),
-    new QueryFailedFilter(reflector),
-  );
+	app.enable('trust proxy'); // only if you're behind a reverse proxy (Heroku, Bluemix, AWS ELB, Nginx, etc)
+	app.use(helmet());
+	// app.setGlobalPrefix('/api'); use api as global prefix if you don't have subdomain
+	app.use(compression());
+	app.enableVersioning();
 
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
+	const reflector = app.get(Reflector);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-      transform: true,
-      dismissDefaultMessages: true,
-      exceptionFactory: (errors) => new UnprocessableEntityException(errors),
-    }),
-  );
+	app.useGlobalFilters(
+		new HttpExceptionFilter(reflector),
+		new QueryFailedFilter(reflector),
+	);
 
-  const configService = app.select(SharedModule).get(ApiConfigService);
+	app.useGlobalInterceptors(new ClassSerializerInterceptor(reflector));
 
-  if (configService.documentationEnabled) {
-    setupSwagger(app);
-  }
+	app.useGlobalPipes(
+		new ValidationPipe({
+			whitelist: true,
+			errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+			transform: true,
+			dismissDefaultMessages: true,
+			exceptionFactory: (errors) => new UnprocessableEntityException(errors),
+		}),
+	);
 
-  // Starts listening for shutdown hooks
-  if (!configService.isDevelopment) {
-    app.enableShutdownHooks();
-  }
+	const configService = app.select(SharedModule).get(ApiConfigService);
 
-  const port = configService.appConfig.port;
-  await app.listen(port);
+	if (configService.documentationEnabled) {
+		setupSwagger(app);
+	}
 
-  console.info(`server running on ${await app.getUrl()}`);
+	// Starts listening for shutdown hooks
+	if (!configService.isDevelopment) {
+		app.enableShutdownHooks();
+	}
 
-  return app;
+	const port = configService.appConfig.port;
+	await app.listen(port);
+
+	console.info(`server running on ${await app.getUrl()}`);
+
+	return app;
 }
 
 void bootstrap();
